@@ -1,0 +1,33 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+Django==4.2.16
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+psycopg2-binary==2.9.9        # PostgreSQL driver
+
+# ── Async task queue ──────────────────────────────────────────────────────────
+celery==5.4.0
+redis==5.0.8                  # Python Redis client (Celery uses this internally)
+flower==2.0.1                 # Celery monitoring dashboard
+
+# ── Redis cache backend for Django ────────────────────────────────────────────
+django-redis==5.4.0
+
+# ── PySpark ───────────────────────────────────────────────────────────────────
+# Pin to 3.5.x to match the bitnami/spark:3.5 cluster image.
+# Mismatches between driver (this) and executor (cluster) cause subtle bugs.
+pyspark==3.5.3
+
+# ── LLM clients ───────────────────────────────────────────────────────────────
+anthropic==0.40.0            # Anthropic Claude API
+google-generativeai==0.8.3    # Optional fallback
+
+
+# ── File parsing ──────────────────────────────────────────────────────────────
+openpyxl==3.1.5               # Excel (.xlsx) reading for initial file inspection
+pandas==2.2.3                 # Lightweight use only: schema sniffing, not bulk processing
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+gunicorn==23.0.0              # Production WSGI server

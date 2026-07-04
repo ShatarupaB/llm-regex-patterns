@@ -1,0 +1,37 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Django
+media/
+staticfiles/
+*.sqlite3
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Spark
+derby.log
+metastore_db/
+spark-warehouse/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+".env.example" 
+".env.example" 

@@ -1,0 +1,303 @@
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.app { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+.app-header { text-align: center; margin-bottom: 2.5rem; }
+.logo { font-size: 1.6rem; font-weight: 700; color: #38bdf8; letter-spacing: -0.5px; }
+.tagline { color: #64748b; font-size: 0.9rem; margin-top: 0.4rem; }
+
+.app-main { display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* ── Card base ────────────────────────────────────────────────────────────── */
+.upload-form, .job-status, .result-table-wrapper {
+  background: #1e2330;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+/* ── Upload form ──────────────────────────────────────────────────────────── */
+.upload-form h2 { font-size: 1.1rem; margin-bottom: 1.25rem; color: #f1f5f9; }
+
+.field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.1rem; }
+
+.field label { font-size: 0.82rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.field input[type="text"],
+.field input[type="file"],
+.field textarea {
+  background: #0f1117;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+
+.field input:focus, .field textarea:focus { border-color: #38bdf8; }
+
+.hint { font-size: 0.78rem; color: #475569; }
+
+button[type="submit"], .new-job-btn {
+  background: #38bdf8;
+  color: #0f1117;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+button[type="submit"]:hover, .new-job-btn:hover { background: #7dd3fc; }
+button[type="submit"]:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+.new-job-btn { display: block; margin: 0 auto; }
+
+/* ── Job status ───────────────────────────────────────────────────────────── */
+.status-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+
+.status-badge {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.05em;
+}
+
+.job-id { font-size: 0.8rem; color: #64748b; font-family: monospace; }
+
+.cancel-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.cancel-btn:hover { background: #ef4444; color: white; }
+
+.progress-track {
+  height: 8px;
+  background: #2d3748;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+.progress-fill { height: 100%; border-radius: 999px; }
+.progress-label { font-size: 0.8rem; color: #64748b; margin-bottom: 0.75rem; }
+
+.status-message { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.6rem; }
+
+.regex-display {
+  background: #0f1117;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+.regex-label { color: #64748b; margin-right: 0.5rem; }
+.regex-display code { color: #86efac; font-family: monospace; word-break: break-all; }
+
+.success-summary { color: #22c55e; font-size: 0.9rem; margin-top: 0.75rem; }
+
+/* ── Result table ─────────────────────────────────────────────────────────── */
+.result-meta { font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem; }
+
+.table-scroll { overflow-x: auto; }
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.result-table th {
+  background: #0f1117;
+  color: #94a3b8;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #2d3748;
+}
+.result-table td {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid #1e2330;
+  color: #cbd5e1;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.result-table tr:hover td { background: #2d3748; }
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+.pagination button {
+  background: #2d3748;
+  border: none;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagination span { color: #64748b; }
+
+/* ── Shared ───────────────────────────────────────────────────────────────── */
+.error {
+  background: #450a0a;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+.error pre { margin-top: 0.5rem; font-size: 0.75rem; overflow-x: auto; white-space: pre-wrap; }
+
+.loading { text-align: center; color: #64748b; padding: 2rem; }
+
+/* ── Cleaned up job status ────────────────────────────────────────────────── */
+.success-block { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
+
+.regex-block {
+  background: #0f1117;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.regex-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.regex-block code { color: #86efac; font-family: monospace; font-size: 0.9rem; word-break: break-all; }
+
+.success-summary { color: #22c55e; font-size: 0.95rem; }
+
+.error-block {
+  background: #1c0a0a;
+  border: 1px solid #7f1d1d;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.5rem;
+}
+.error-title { color: #fca5a5; font-weight: 600; margin-bottom: 0.4rem; }
+.error-body { color: #fca5a5; font-size: 0.88rem; line-height: 1.5; }
+
+/* ── History panel ────────────────────────────────────────────────────────── */
+.history-wrapper { display: flex; flex-direction: column; gap: 0; }
+
+.history-toggle {
+  background: transparent;
+  border: 1px solid #2d3748;
+  color: #64748b;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, color 0.2s;
+}
+.history-toggle:hover { border-color: #38bdf8; color: #38bdf8; }
+
+.history-panel {
+  background: #1e2330;
+  border: 1px solid #2d3748;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.history-empty { padding: 1rem; color: #475569; font-size: 0.85rem; text-align: center; }
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #2d3748;
+  gap: 1rem;
+  transition: background 0.15s;
+}
+.history-row:last-child { border-bottom: none; }
+.history-row:hover { background: #2d3748; }
+
+.history-main { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.history-filename { font-size: 0.82rem; color: #94a3b8; flex-shrink: 0; }
+.history-prompt { font-size: 0.85rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.history-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; flex-shrink: 0; }
+.history-status { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.history-time { font-size: 0.75rem; color: #475569; }
+
+/* ── Result toolbar + download ────────────────────────────────────────────── */
+.result-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+
+.download-btn {
+  background: transparent;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.download-btn:hover { background: #38bdf8; color: #0f1117; }
+
+/* ── History delete controls ──────────────────────────────────────────────── */
+.history-toolbar {
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid #2d3748;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clear-failed-btn {
+  background: transparent;
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.clear-failed-btn:hover { background: #7f1d1d; }
+
+.history-delete-btn {
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+.history-delete-btn:hover { color: #ef4444; background: #1c0a0a; }
