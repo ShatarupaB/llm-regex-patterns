@@ -31,3 +31,5 @@ pandas==2.2.3                 # Lightweight use only: schema sniffing, not bulk 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dotenv==1.0.1
 gunicorn==23.0.0              # Production WSGI server
+
+whitenoise==6.7.0
