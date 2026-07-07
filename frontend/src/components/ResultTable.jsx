@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getJobResult } from '../api/jobs'
+import { getJobResult, getDownloadUrl } from '../api/jobs'
 
 const PAGE_SIZE = 100
 
@@ -20,7 +20,7 @@ export function ResultTable({ jobId }) {
   }, [jobId, page])
 
   const handleDownload = () => {
-    window.open(`/api/v1/jobs/${jobId}/download/`, '_blank')
+    window.open(getDownloadUrl(jobId), '_blank')
   }
 
   if (!jobId) return null
