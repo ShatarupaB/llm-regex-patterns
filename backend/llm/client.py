@@ -1,8 +1,5 @@
 """
-client.py — LLM client with three-tier fallback:
-  1. Anthropic API
-  2. Gemini API  
-  3. Hardcoded fallback dictionary (works with zero API credits)
+client.py — LLM client with Anthropic primary and Gemini fallback.
 """
 
 import re
@@ -59,10 +56,8 @@ def _try_gemini(prompt: str) -> str:
 
 def generate_regex_from_prompt(nl_prompt: str) -> str:
     from .prompts import build_regex_prompt
-    from .fallbacks import get_fallback_regex
 
     prompt = build_regex_prompt(nl_prompt)
-    errors = []
 
     # Tier 1: Anthropic
     try:
@@ -71,26 +66,16 @@ def generate_regex_from_prompt(nl_prompt: str) -> str:
         return _validate_regex(raw)
     except Exception as e:
         logger.warning(f"Anthropic failed: {e}")
-        errors.append(f"Anthropic: {type(e).__name__}")
 
-    # Tier 2: Gemini
+    # Tier 2: Gemini fallback
     try:
         raw = _try_gemini(prompt)
         logger.info("Regex generated via Gemini")
         return _validate_regex(raw)
     except Exception as e:
         logger.warning(f"Gemini failed: {e}")
-        errors.append(f"Gemini: {type(e).__name__}")
 
-    # Tier 3: Hardcoded fallback dictionary
-    fallback = get_fallback_regex(nl_prompt)
-    if fallback:
-        logger.info(f"Using hardcoded fallback regex for: {nl_prompt[:50]}")
-        return _validate_regex(fallback)
-
-    # All three failed
     raise RuntimeError(
-        f"Could not generate regex. API services unavailable and no fallback "
-        f"pattern matched '{nl_prompt[:60]}'. Try describing the pattern differently "
-        f"(e.g. 'find email addresses', 'find phone numbers')."
+        "Could not generate a regex pattern. Both LLM providers are currently "
+        "unavailable. Please try again later."
     )
