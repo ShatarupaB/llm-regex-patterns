@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { listJobs, deleteJob, clearFailedJobs } from '../api/jobs'
+import axios from 'axios'
 
 const STATUS_COLOURS = {
   QUEUED:    '#6b7280',
@@ -15,6 +16,10 @@ function timeAgo(dateStr) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   return `${Math.floor(diff / 86400)}d ago`
+}
+
+async function clearAllJobs() {
+  await axios.delete('/api/v1/jobs/bulk-delete/')
 }
 
 export function JobHistory({ onSelectJob }) {
@@ -36,6 +41,12 @@ export function JobHistory({ onSelectJob }) {
     setJobs(prev => prev.filter(j => j.status !== 'FAILED'))
   }
 
+  const handleClearAll = async () => {
+    if (!window.confirm('Delete all job history? This cannot be undone.')) return
+    await clearAllJobs()
+    setJobs([])
+  }
+
   const hasFailed = jobs.some(j => j.status === 'FAILED')
 
   return (
@@ -46,10 +57,15 @@ export function JobHistory({ onSelectJob }) {
 
       {open && (
         <div className="history-panel">
-          {hasFailed && (
+          {jobs.length > 0 && (
             <div className="history-toolbar">
-              <button className="clear-failed-btn" onClick={handleClearFailed}>
-                🗑 Clear all failed
+              {hasFailed && (
+                <button className="clear-failed-btn" onClick={handleClearFailed}>
+                  Clear failed
+                </button>
+              )}
+              <button className="clear-all-btn" onClick={handleClearAll}>
+                Clear all
               </button>
             </div>
           )}
@@ -78,7 +94,7 @@ export function JobHistory({ onSelectJob }) {
                 <button
                   className="history-delete-btn"
                   onClick={(e) => handleDelete(e, job.id)}
-                  title="Delete this job"
+                  title="Delete"
                 >✕</button>
               </div>
             </div>

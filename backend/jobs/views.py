@@ -223,3 +223,68 @@ class JobBulkDeleteView(APIView):
         else:
             deleted, _ = Job.objects.all().delete()
         return Response({"deleted": deleted})
+
+
+class FileListView(APIView):
+    """Lists all previously uploaded files with their metadata."""
+
+    def get(self, request):
+        import os
+        from django.conf import settings
+
+        uploads_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+        files = []
+
+        for root, dirs, filenames in os.walk(uploads_dir):
+            for fname in filenames:
+                if fname.startswith('.'):
+                    continue
+                abs_path = os.path.join(root, fname)
+                rel_path = os.path.relpath(abs_path, settings.MEDIA_ROOT)
+                size = os.path.getsize(abs_path)
+                modified = os.path.getmtime(abs_path)
+                files.append({
+                    'path': rel_path.replace('\\', '/'),
+                    'name': fname,
+                    'size_mb': round(size / 1024 / 1024, 2),
+                    'modified': modified,
+                })
+
+        # Most recent first
+        files.sort(key=lambda x: x['modified'], reverse=True)
+        return Response(files)
+
+
+class JobFromExistingFileView(APIView):
+    """Create a job using an already-uploaded file path."""
+
+    def post(self, request):
+        import os
+        from django.conf import settings
+
+        file_path = request.data.get('file_path')
+        nl_prompt = request.data.get('nl_prompt')
+        target_columns = request.data.get('target_columns')
+        replacement_value = request.data.get('replacement_value')
+
+        if not all([file_path, nl_prompt, target_columns, replacement_value]):
+            return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+        abs_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        if not os.path.exists(abs_path):
+            return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        from jobs.tasks import process_job
+        job = Job.objects.create(
+            upload_file=file_path,
+            original_filename=os.path.basename(file_path),
+            nl_prompt=nl_prompt,
+            target_columns=target_columns,
+            replacement_value=replacement_value,
+            status=Job.Status.QUEUED,
+        )
+        task = process_job.delay(str(job.id))
+        job.celery_task_id = task.id
+        job.save(update_fields=['celery_task_id'])
+
+        return Response({'job_id': str(job.id), 'status': job.status}, status=status.HTTP_202_ACCEPTED)

@@ -30,7 +30,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="logo">◆ Rhombus AI</div>
-        <p className="tagline">Natural Language → Regex → Data Transformation at Scale</p>
+        <p className="tagline">Regex-powered data transformation at scale</p>
       </header>
 
       <main className="app-main">

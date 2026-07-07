@@ -31,9 +31,11 @@ export function JobStatus({ job, onCancel }) {
   const isActive = job.status === 'QUEUED' || job.status === 'RUNNING'
 
   const handleCancel = async () => {
+    if (!window.confirm('Cancel this job?')) return
     try {
       await cancelJob(job.id)
-      onCancel?.()
+      // Wait for next poll to pick up CANCELLED status before resetting UI
+      setTimeout(() => onCancel?.(), 2000)
     } catch (err) {
       alert('Failed to cancel: ' + (err.response?.data?.error || err.message))
     }
@@ -70,6 +72,10 @@ export function JobStatus({ job, onCancel }) {
         <div className="success-summary">
           ✅ {Number(job.result_row_count).toLocaleString()} rows processed successfully
         </div>
+      )}
+
+      {job.status === 'CANCELLED' && (
+        <div className="status-message">Job was cancelled.</div>
       )}
 
       {job.status === 'FAILED' && (

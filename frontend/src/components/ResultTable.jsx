@@ -29,13 +29,14 @@ export function ResultTable({ jobId }) {
   if (!data) return null
 
   const totalPages = data.total_rows ? Math.ceil(data.total_rows / PAGE_SIZE) : 1
+  const colCount = data.headers?.length || 0
 
   return (
     <div className="result-table-wrapper">
       <div className="result-toolbar">
         <div className="result-meta">
-          Showing rows {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, data.total_rows)} of{' '}
-          {Number(data.total_rows).toLocaleString()} total
+          {Number(data.total_rows).toLocaleString()} rows · {colCount} columns
+          {totalPages > 1 && ` · Page ${page} of ${totalPages}`}
         </div>
         <button className="download-btn" onClick={handleDownload}>
           ↓ Download CSV
@@ -57,13 +58,15 @@ export function ResultTable({ jobId }) {
         </table>
       </div>
 
-      <div className="pagination">
-        <button onClick={() => setPage(1)} disabled={page === 1}>«</button>
-        <button onClick={() => setPage(p => p - 1)} disabled={page === 1}>‹</button>
-        <span>Page {page} of {totalPages}</span>
-        <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>›</button>
-        <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>»</button>
-      </div>
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button onClick={() => setPage(1)} disabled={page === 1}>«</button>
+          <button onClick={() => setPage(p => p - 1)} disabled={page === 1}>‹</button>
+          <span>Page {page} of {totalPages}</span>
+          <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>›</button>
+          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>»</button>
+        </div>
+      )}
     </div>
   )
 }

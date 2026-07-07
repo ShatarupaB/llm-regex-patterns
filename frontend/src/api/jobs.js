@@ -72,3 +72,18 @@ export async function clearFailedJobs() {
   const res = await api.delete('/jobs/bulk-delete/', { params: { status: 'FAILED' } })
   return res.data
 }
+
+export async function listFiles() {
+  const res = await api.get('/files/')
+  return res.data
+}
+
+export async function createJobFromFile({ filePath, nlPrompt, targetColumns, replacementValue }) {
+  const res = await api.post('/jobs/from-file/', {
+    file_path: filePath,
+    nl_prompt: nlPrompt,
+    target_columns: targetColumns,
+    replacement_value: replacementValue,
+  })
+  return res.data
+}

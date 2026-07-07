@@ -1,26 +1,50 @@
-/**
- * UploadForm.jsx
- *
- * Collects: CSV/Excel file, natural-language prompt,
- * target column(s), and replacement value.
- * On submit → calls createJob() → passes job_id up to App.
- */
-
 import { useState } from 'react'
 import { createJob } from '../api/jobs'
 
+async function previewColumns(file) {
+  return new Promise((resolve) => {
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (ext !== 'csv') { resolve([]); return }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const firstLine = e.target.result.split('\n')[0]
+      const cols = firstLine.split(',').map(c => c.trim().replace(/^"|"$/g, ''))
+      resolve(cols)
+    }
+    reader.readAsText(file.slice(0, 4096))
+  })
+}
+
 export function UploadForm({ onJobCreated }) {
   const [file, setFile] = useState(null)
+  const [columns, setColumns] = useState([])
   const [nlPrompt, setNlPrompt] = useState('')
   const [targetColumns, setTargetColumns] = useState('')
   const [replacementValue, setReplacementValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const handleFileChange = async (e) => {
+    const f = e.target.files[0]
+    if (!f) return
+    setFile(f)
+    setError(null)
+    const cols = await previewColumns(f)
+    setColumns(cols)
+  }
+
+  const handleColumnClick = (col) => {
+    setTargetColumns(prev => {
+      if (!prev.trim()) return col
+      const existing = prev.split(',').map(c => c.trim())
+      if (existing.includes(col)) return prev
+      return prev + ', ' + col
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
-
     if (!file) return setError('Please select a file.')
     if (!nlPrompt.trim()) return setError('Please describe the pattern.')
     if (!targetColumns.trim()) return setError('Please enter at least one column name.')
@@ -41,41 +65,49 @@ export function UploadForm({ onJobCreated }) {
     <form onSubmit={handleSubmit} className="upload-form">
       <h2>New Job</h2>
 
-      {/* File upload */}
       <div className="field">
         <label>CSV or Excel File</label>
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
-        {file && <span className="hint">{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>}
+        <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} />
+        {file && (
+          <span className="hint">{file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB</span>
+        )}
       </div>
 
-      {/* Natural language prompt */}
       <div className="field">
         <label>Describe what to find</label>
         <textarea
           rows={3}
-          placeholder='e.g. "Find all email addresses" or "Match phone numbers in US format"'
+          placeholder='e.g. "Find all email addresses" or "Match phone numbers"'
           value={nlPrompt}
           onChange={(e) => setNlPrompt(e.target.value)}
         />
       </div>
 
-      {/* Target columns */}
       <div className="field">
         <label>Target column(s)</label>
+        {columns.length > 0 && (
+          <div className="column-chips">
+            {columns.map(col => (
+              <button
+                key={col}
+                type="button"
+                className="column-chip"
+                onClick={() => handleColumnClick(col)}
+              >
+                {col}
+              </button>
+            ))}
+          </div>
+        )}
         <input
           type="text"
-          placeholder="e.g. Email  or  Email, Notes, Description"
+          placeholder={columns.length > 0 ? 'Click above or type here' : 'e.g. Email  or  Email, Notes'}
           value={targetColumns}
           onChange={(e) => setTargetColumns(e.target.value)}
         />
-        <span className="hint">Comma-separated if multiple columns</span>
+        <span className="hint">Comma-separated for multiple columns.</span>
       </div>
 
-      {/* Replacement value */}
       <div className="field">
         <label>Replace matches with</label>
         <input
