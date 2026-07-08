@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { listJobs, deleteJob, clearFailedJobs } from '../api/jobs'
 import axios from 'axios'
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
+  : '/api/v1'
+
 const STATUS_COLOURS = {
   QUEUED:    '#6b7280',
   RUNNING:   '#3b82f6',
@@ -19,7 +23,7 @@ function timeAgo(dateStr) {
 }
 
 async function clearAllJobs() {
-  await axios.delete('/api/v1/jobs/bulk-delete/')
+  await axios.delete(`${BASE_URL}/jobs/bulk-delete/`)
 }
 
 export function JobHistory({ onSelectJob }) {
