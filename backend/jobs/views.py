@@ -54,7 +54,7 @@ class JobListCreateView(APIView):
         # because Celery tasks are serialised as JSON and Django model instances
         # are not JSON-serialisable.
         try:
-            task = process_job.delay(str(job.id))
+            task = process_job.apply_async(args=[str(job.id)], countdown=15)
         except Exception:
             from config.celery import app
             task = app.send_task('jobs.tasks.process_job', args=[str(job.id)])

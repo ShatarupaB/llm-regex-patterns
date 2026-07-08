@@ -89,20 +89,8 @@ def process_job(self, job_id: str):
 
         target_cols = [c.strip() for c in job.target_columns.split(",")]
 
-        import time, os
-        file_path = job.upload_file.path
-
-        # Force filesystem sync before checking
-        os.sync()
-
-        waited = 0
-        while not os.path.exists(file_path) and waited < 60:
-            time.sleep(2)
-            os.sync()
-            waited += 2
-
-        if not os.path.exists(file_path):
-            raise RuntimeError(f"File not available after 60s: {file_path}")
+        import time
+        time.sleep(2)
 
         result_path, row_count = run_replacement(
             upload_path=job.upload_file.path,
