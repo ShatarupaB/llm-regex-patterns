@@ -53,7 +53,11 @@ class JobListCreateView(APIView):
         # The task receives the job UUID (as string) — never the full object,
         # because Celery tasks are serialised as JSON and Django model instances
         # are not JSON-serialisable.
-        task = process_job.delay(str(job.id))
+        try:
+            task = process_job.delay(str(job.id))
+        except Exception:
+            from config.celery import app
+            task = app.send_task('jobs.tasks.process_job', args=[str(job.id)])
 
         # Store the Celery task ID so we can poll/cancel it later.
         job.celery_task_id = task.id
