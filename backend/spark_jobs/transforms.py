@@ -55,15 +55,19 @@ def run_replacement(
     # ── 1. Read input file ────────────────────────────────────────────────
     ext = os.path.splitext(upload_path)[1].lower()
 
+    # Prefix with file:// so Spark explicitly uses local filesystem
+    # Without this, Spark on some platforms tries HDFS or other filesystems
+    local_path = f"file://{upload_path}" if not upload_path.startswith("file://") else upload_path
+
     try:
         if ext == ".csv":
             df = (
                 spark.read
                 .option("header", "true")
-                .option("inferSchema", "false")   # keep everything as strings
-                .option("multiLine", "true")       # handle newlines inside quoted fields
+                .option("inferSchema", "false")
+                .option("multiLine", "true")
                 .option("escape", '"')
-                .csv(upload_path)
+                .csv(local_path)
             )
         elif ext in (".xlsx", ".xls"):
             # PySpark doesn't read Excel natively.
@@ -104,16 +108,11 @@ def run_replacement(
     # result serving (one file to read, paginate, and serve over HTTP).
     # For production with >10M rows, write multiple partitions and build a
     # streaming/cursor-based result API instead.
-    # result_dir = f"results/{job_id}"
-    # result_abs_dir = os.path.join(
-    #     os.path.dirname(os.path.dirname(upload_path)),  # → media/
-    #     result_dir
-    # )
-
     result_dir = f"results/{job_id}"
-# Walk up from the upload path to find MEDIA_ROOT
-    from django.conf import settings
-    result_abs_dir = os.path.join(settings.MEDIA_ROOT, result_dir)
+    result_abs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(upload_path)),  # → media/
+        result_dir
+    )
 
     (
         df.coalesce(1)
