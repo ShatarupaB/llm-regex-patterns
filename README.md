@@ -12,23 +12,7 @@ A full-stack web application that lets users upload CSV/Excel files, describe pa
 
 ## Architecture
 
-```
-┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│   React UI  │──HTTP──▶│   Django    │──tasks─ │   Celery  │
-│  (Vite)     │         │   REST API  │          │   Worker    │
-└─────────────┘         └──────┬──────┘          └──────┬──────┘
-                               │                        │
-                          ┌────▼────┐            ┌──────▼──────┐
-                          │Postgres │            │   PySpark   │
-                          │  Jobs   │            │  Transform  │
-                          └─────────┘            └─────────────┘
-                               │                        │
-                          ┌────▼────────────────────────▼────┐
-                          │              Redis                │
-                          │  db/0: Celery broker + results   │
-                          │  db/1: LLM regex cache           │
-                          └───────────────────────────────────┘
-```
+[![Demo Video](demo_thumbnail.png)](architecture_diagram.png)
 
 ### Tech Stack
 
