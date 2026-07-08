@@ -91,10 +91,18 @@ def process_job(self, job_id: str):
 
         import time, os
         file_path = job.upload_file.path
-        for _ in range(30):
-            if os.path.exists(file_path):
-                break
-            time.sleep(1)
+
+        # Force filesystem sync before checking
+        os.sync()
+
+        waited = 0
+        while not os.path.exists(file_path) and waited < 60:
+            time.sleep(2)
+            os.sync()
+            waited += 2
+
+        if not os.path.exists(file_path):
+            raise RuntimeError(f"File not available after 60s: {file_path}")
 
         result_path, row_count = run_replacement(
             upload_path=job.upload_file.path,
