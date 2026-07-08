@@ -87,13 +87,14 @@ class JobDetailView(APIView):
 
         data = JobStatusSerializer(job).data
 
-        # Enrich with live Celery metadata if we have a task ID.
         if job.celery_task_id:
-            result = AsyncResult(job.celery_task_id)
-            data["celery_state"] = result.state
-            # result.info is a dict when the task called update_state(meta={...})
-            if isinstance(result.info, dict):
-                data["celery_meta"] = result.info
+            try:
+                result = AsyncResult(job.celery_task_id)
+                data["celery_state"] = result.state
+                if isinstance(result.info, dict):
+                    data["celery_meta"] = result.info
+            except Exception:
+                pass
 
         return Response(data)
 

@@ -35,3 +35,7 @@ spark-warehouse/
 .DS_Store
 ".env.example" 
 ".env.example" 
+"-multilnst" 
+".env.example" 
+"docker/__init__.py" 
+"supervisord.conf" 
