@@ -12,15 +12,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk-headless \
     libpq-dev \
     gcc \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+COPY supervisord.conf /etc/supervisor/conf.d/rhombus.conf
 
 RUN mkdir -p /app/media/uploads /app/media/results /app/staticfiles
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && supervisord -c /etc/supervisor/conf.d/rhombus.conf"]
