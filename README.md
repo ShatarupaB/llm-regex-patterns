@@ -14,61 +14,50 @@ A full-stack web application that lets users upload CSV/Excel files, describe pa
 
 ![Architecture Diagram](architecture_diagram.png)
 
-### Tech Stack
+### React + Vite (Frontend)
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18 + Vite |
-| API | Django 4.2 + Django REST Framework |
-| Task queue | Celery 5.4 |
-| Message broker + cache | Redis 7 |
-| Data processing | PySpark 3.5 |
-| LLM | Anthropic Claude (Gemini fallback) |
-| Database | PostgreSQL 15 |
-| Deployment | Railway |
+React handles the user interface — file upload, natural language prompt input, live progress display, paginated results table, job history, and CSV download. Vite is used as the build tool for fast development and optimised production builds. The frontend polls the Django API every 2 seconds for job status updates, which keeps the architecture simple and self-healing compared to WebSockets while being sufficient for jobs that run in the 10-60 second range.
 
----
+### Django + Django REST Framework (API Layer)
 
-## How It Works
+Django serves as the HTTP API layer. Its only responsibility is to accept requests, validate input, write a Job record to Postgres, dispatch a task to Celery, and return a job ID immediately. Django never performs any file processing or LLM calls inline — this ensures the API always responds within milliseconds regardless of dataset size. Django REST Framework provides serialisation, request parsing (including multipart file uploads), and the browsable API for development.
 
-1. User uploads a CSV/Excel file and describes a pattern in plain English
-2. Django accepts the request, creates a Job record (status=QUEUED), and returns a job ID **immediately** — it never processes data inline
-3. Celery picks up the job from the Redis message queue
-4. **LLM stage**: Redis cache is checked first — cache hit returns instantly, cache miss calls the Anthropic API and stores the result (7-day TTL, keyed by SHA-256 hash of the prompt)
-5. **Spark stage**: PySpark reads the file, applies `regexp_replace()` across all partitions in parallel, writes the result CSV
-6. Job status updates to SUCCESS with result path
-7. React frontend polls `GET /jobs/{id}/` every 2 seconds, displays live progress
-8. Results served paginated (100 rows at a time), downloadable as CSV
+### Celery (Async Task Queue)
 
----
+Celery runs the actual processing pipeline as a background worker, completely separate from the Django web process. When Django dispatches a task via `process_job.delay(job_id)`, the message is placed on the Redis queue and Celery picks it up independently. Celery was chosen over simple threading because it supports distributed execution (multiple workers), automatic retries with backoff on failure, task state tracking, and cancellation via `revoke()`. Tasks are configured with `acks_late=True` so a message is only acknowledged after the task completes — if the worker crashes mid-task, the message re-queues rather than being silently lost.
 
-## Architecture Decisions
+### Redis (Message Broker + Cache)
 
-**Django separate from Celery** — the web process must respond immediately. Processing a large file inline would time out. Django only accepts requests and dispatches work.
+Redis serves two purposes, kept on separate database indices to avoid interference:
 
-**Redis for both broker and cache** — separate database indices (db/0 for Celery, db/1 for cache) mean flushing the LLM cache never touches the task queue.
+- **db/0** — Celery message broker and result backend. Holds the task queue and stores task state (QUEUED, RUNNING, SUCCESS, FAILED) so the polling API can retrieve it.
+- **db/1** — LLM response cache. Generated regex patterns are cached here keyed by a SHA-256 hash of the normalised prompt, with a 7-day TTL. This means identical prompts never re-call the LLM API — both saving cost and making repeat requests near-instant.
 
-**PySpark over pandas** — `pandas.iterrows()` processes rows sequentially. Spark's `regexp_replace()` runs as a distributed transformation across partitions in parallel. For large datasets the difference is significant.
+### PySpark (Data Transformation Engine)
 
-**Polling over WebSockets** — polling every 2 seconds is simple, self-healing, and sufficient for jobs that take 10-60 seconds. WebSockets would add complexity for marginal benefit at this scale.
+PySpark applies the regex transformation across the dataset. The core operation is Spark's built-in `regexp_replace()` function, which runs as a distributed transformation across partitions rather than iterating row-by-row. For large datasets this is significantly faster than pandas — `pandas.iterrows()` is single-threaded and loads the entire dataset into memory, while Spark partitions the data and processes partitions in parallel. Shuffle partitions are set to 8 (Spark's default is 200) to avoid creating many tiny files for typical dataset sizes. Output is coalesced to a single CSV file for simplified HTTP serving — the trade-off is a single writer, which for very large datasets (>10M rows) would be slower than keeping multiple partitions.
 
-**coalesce(1)** — output is written as a single CSV file for simplified HTTP serving. Trade-off: single writer is slower for very large datasets. For production, multiple partitions with a streaming API would be preferable.
+### PostgreSQL (Job Metadata)
+
+PostgreSQL stores Job records — status, progress, file paths, generated regex, error messages, and timestamps. Job state is written here (not only in Redis) so it survives a Redis restart and can be queried by the admin panel. The Job model uses UUID primary keys so job IDs are safe to expose in URLs without leaking row counts.
+
+### Anthropic Claude + Gemini (LLM)
+
+The Anthropic Claude API (`claude-haiku-4-5`) converts the user's natural language prompt into a regex pattern. Haiku was chosen for speed and cost efficiency — regex generation is a simple task that doesn't require a larger model. Google Gemini serves as an automatic fallback if the Anthropic API is unavailable. Generated patterns are validated before use: compiled with Python's `re` module to check syntax, and checked against known catastrophic backtracking constructs.
 
 ---
 
-## Partitioning and Parallelism
+## Request Lifecycle
 
-Files are read into Spark with automatic partitioning based on file size (128MB per partition via `spark.sql.files.maxPartitionBytes`). The regex transformation is applied as a lazy Spark transformation across all partitions simultaneously when an action (`.write()`) is triggered. Shuffle partitions are set to 8 rather than Spark's default of 200 to avoid creating many tiny files for typical dataset sizes.
-
----
-
-## LLM Resilience
-
-Three-tier fallback for regex generation:
-
-1. **Redis cache** — identical prompts never re-hit the API (7-day TTL)
-2. **Anthropic Claude API** — primary provider
-3. **Google Gemini API** — automatic fallback if Anthropic fails
+1. User uploads a file and submits a natural language prompt via the React frontend
+2. Django saves the file, creates a Job record (status=`QUEUED`), and returns `{job_id}` immediately
+3. React begins polling `GET /api/v1/jobs/{id}/` every 2 seconds
+4. Celery picks up the job from the Redis queue
+5. Redis cache is checked for the prompt — cache hit returns the regex instantly; cache miss calls the Anthropic API, stores the result in Redis
+6. PySpark reads the file, applies `regexp_replace()` across all partitions, writes the result CSV to disk
+7. Job is updated to `SUCCESS` with the result file path
+8. React receives `SUCCESS`, fetches results paginated at 100 rows per page
+9. User downloads the transformed CSV
 
 ---
 
@@ -124,10 +113,12 @@ SPARK_MASTER_URL=local[*]
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-**3. Start all services**
+**3. Start all services with a single command**
 ```bash
 docker-compose up --build
 ```
+
+This starts: Django API, Celery worker, Redis, PostgreSQL, PySpark (local mode), Flower monitoring, and the React frontend.
 
 **4. Run migrations**
 ```bash
@@ -143,18 +134,21 @@ docker-compose exec web python manage.py migrate
 
 ## Testing with Large Datasets
 
-The demo uses a 10,000 row synthetic employee dataset generated with Python's Faker library, containing realistic names, emails, phone numbers, salaries and department information. The dataset intentionally includes some malformed entries (e.g. `invalid-email-123`) to demonstrate that the regex only replaces exact pattern matches, leaving non-matching values unchanged.
+A synthetic 10,000 row employee dataset can be generated using the included script:
 
-To generate your own test dataset:
-```python
+```bash
 pip install faker
 python generate_data.py
 ```
 
+This produces `test_large.csv` with columns: `ID`, `Full Name`, `Email`, `Phone`, `Company`, `Address`, `Notes`, `Salary`, `Department`, `Join Date`. The dataset intentionally includes some malformed entries (e.g. `invalid-email-123`) to demonstrate that the regex transformation only replaces exact pattern matches, leaving non-matching values unchanged.
+
+
 ---
 
-## Known Limitations
+## Trade-offs and Known Limitations
 
-- **Semantic patterns**: Regex works best for structural patterns (emails, phone numbers, dates). Semantic patterns (first names, company names) may produce imprecise results — these require NLP rather than regex.
-- **Excel files**: Large Excel files are converted via pandas before Spark processing. For very large Excel files, converting to CSV first is recommended.
-- **Single output file**: Results use `coalesce(1)` for simplified serving. For datasets exceeding 10M rows, multiple output partitions with streaming would be more performant.
+- **Semantic patterns**: Regex is effective for structural patterns (emails, phone numbers, dates, URLs). Semantic patterns (first names, company names, job titles) may produce imprecise results because they require NLP/NER rather than pattern matching.
+- **Excel files**: Excel uploads are converted to an intermediate format via pandas before Spark processing. For very large Excel files, converting to CSV first is recommended.
+- **Single output file**: Results are coalesced to one CSV (`coalesce(1)`) for simplified serving. For datasets exceeding 10M rows, keeping multiple output partitions and building a cursor-based streaming API would be more performant.
+- **Polling vs WebSockets**: The frontend polls every 2 seconds rather than using WebSockets. This is simpler and self-healing but generates more HTTP requests. For a production system with many concurrent users, Server-Sent Events or WebSockets would be preferable.
