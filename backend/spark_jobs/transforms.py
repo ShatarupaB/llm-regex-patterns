@@ -109,10 +109,8 @@ def run_replacement(
     # For production with >10M rows, write multiple partitions and build a
     # streaming/cursor-based result API instead.
     result_dir = f"results/{job_id}"
-    result_abs_dir = os.path.join(
-        os.path.dirname(os.path.dirname(upload_path)),  # → media/
-        result_dir
-    )
+    from django.conf import settings
+    result_abs_dir = os.path.join(settings.MEDIA_ROOT, result_dir)
 
     (
         df.coalesce(1)
