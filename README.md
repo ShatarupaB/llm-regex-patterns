@@ -14,34 +14,34 @@ A full-stack web application that lets users upload CSV/Excel files, describe pa
 
 ![Architecture Diagram](architecture_diagram.png)
 
-### React + Vite (Frontend)
+### React and Vite (Frontend)
 
 React handles the user interface, that is, file upload, natural language prompt input, live progress display, paginated results table, job history, and CSV download. Vite is used as the build tool for fast development and optimised production builds. The frontend polls the Django API every 2 seconds for job status updates, which keeps the architecture simple and self-healing compared to WebSockets while being sufficient for jobs that run in the 10-60 second range.
 
-### Django + Django REST Framework (API Layer)
+### Django and REST Framework (API Layer)
 
 Django serves as the HTTP API layer. Its only responsibility is to accept requests, validate input, write a Job record to Postgres, dispatch a task to Celery, and return a job ID immediately. Django never performs any file processing or LLM calls inline which ensures the API always responds within milliseconds regardless of dataset size. Django REST Framework provides serialisation, request parsing, and the browsable API for development.
 
-### Celery (Async Task Queue)
+### Celery (Asynchronous Task Queue)
 
 Celery is the component that runs the actual processing pipeline as a background worker. When Django dispatches a task via `process_job.delay(job_id)`, the message is placed on the Redis queue and Celery picks it up independently. Celery was chosen over simple threading because it supports distributed execution, automatic retries with backoff on failure, task state tracking, and cancellation via `revoke()`. Tasks are configured with `acks_late=True` so a message is only acknowledged after the task completes. If the worker crashes mid-task, the message re-queues rather than being lost.
 
-### Redis (Message Broker + Cache)
+### Redis (Message Broker and Cache)
 
 Redis has two uses which are each kept on separate database indices to avoid interference - 
 
 - **db/0**:  This is the Celery message broker and result backend. It holds the task queue and stores task state (QUEUED, RUNNING, SUCCESS, FAILED) so the polling API can retrieve it.
 - **db/1**:  LLM response cache. The generated regex patterns are cached here and keyed by hash of the normalised prompt, with a 7-day TTL. This means the LLM API is not called again for the same prompts which makes the process efficient.
 
-### PySpark (Data Transformation Engine)
+### PySpark (Data Transformation)
 
 PySpark applies the regex transformation across the dataset. The core operation is Spark's built-in `regexp_replace()` function, which runs as a distributed transformation across partitions rather than iterating row-by-row. For large datasets this is significantly faster than methods like `pandas.iterrows()` which has a single thread and loads the entire dataset into memory. Meanwhile Spark partitions the data and processes each partition in parallel. Shuffle partitions are set to 8 to avoid creating many small files for normal dataset sizes. Output is coalesced to a single CSV file for simplified HTTP serving. The trade-off due to this is a single writer, which would make the application slower for very large datasets.
 
-### PostgreSQL (Job Metadata)
+### PostgreSQL
 
 PostgreSQL stores Job records like status, progress, file paths, generated regex, error messages, and timestamps. Job state is written here so it survives a Redis restart and can be queried by the admin panel. The Job model uses UUID primary keys so job IDs are safe to expose in URLs without leaking row counts.
 
-### Anthropic Claude + Gemini (LLM)
+### Anthropic Claude and Gemini (LLM)
 
 The Anthropic Claude API converts the user's natural language prompt into a regex pattern. Google Gemini serves as an automatic fallback if the Anthropic API is unavailable. Generated patterns are validated before use and compiled with Python's `re` module to check syntax, and checked against known bad backtracking constructs.
 
@@ -146,7 +146,7 @@ This produces `test_large.csv` with columns: `ID`, `Full Name`, `Email`, `Phone`
 
 ---
 
-## Trade-offs and Known Limitations
+## Trade-offs and known limitations
 
 - **Semantic patterns**: Regex is effective for structural patterns like emails,phone numbers, dates, etc. Semantic patterns like identifying the first name, company names, or job titles may produce incorrect results because they require NER rather than pattern matching.
 - **Excel files**: Excel uploads are converted to an intermediate format via pandas before Spark processing. For very large Excel files, converting to CSV first is recommended.
