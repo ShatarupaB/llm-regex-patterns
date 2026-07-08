@@ -6,7 +6,7 @@ A full-stack web application that lets users upload CSV/Excel files, describe pa
 
 ## Demo Video
 
-[![▶ Click to watch the demo]](https://youtu.be/odTuPUZ9tlQ)
+[▶ Click to watch the demo](https://youtu.be/odTuPUZ9tlQ)
 
 ---
 
