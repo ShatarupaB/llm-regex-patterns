@@ -98,7 +98,7 @@ def process_job(self, job_id: str):
 
         # Small delay to ensure file is fully written to volume before Spark reads it
         import time
-        time.sleep(2)
+        time.sleep(10)
 
         result_path, row_count = run_replacement(
             upload_path=job.upload_file.path,
