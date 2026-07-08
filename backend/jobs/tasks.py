@@ -89,6 +89,13 @@ def process_job(self, job_id: str):
 
         target_cols = [c.strip() for c in job.target_columns.split(",")]
 
+        import time, os
+        file_path = job.upload_file.path
+        for _ in range(30):
+            if os.path.exists(file_path):
+                break
+            time.sleep(1)
+
         result_path, row_count = run_replacement(
             upload_path=job.upload_file.path,
             target_columns=target_cols,
