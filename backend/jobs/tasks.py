@@ -84,17 +84,21 @@ def process_job(self, job_id: str):
         job.save(update_fields=["generated_regex", "updated_at"])
         _update_progress(job, self, 25, f"Regex generated: {regex}")
 
-        # Debug: verify file exists before Spark
-        import os
-        file_path = job.upload_file.path
-        logger.error(f"[DEBUG] File path: {file_path}")
-        logger.error(f"[DEBUG] File exists: {os.path.exists(file_path)}")
-        logger.error(f"[DEBUG] Media root contents: {os.listdir('/app/media')}")
+        # # Debug: verify file exists before Spark
+        # import os
+        # file_path = job.upload_file.path
+        # logger.error(f"[DEBUG] File path: {file_path}")
+        # logger.error(f"[DEBUG] File exists: {os.path.exists(file_path)}")
+        # logger.error(f"[DEBUG] Media root contents: {os.listdir('/app/media')}")
 
         # ── Stage 3: PySpark transformation ──────────────────────────────
         _update_progress(job, self, 30, "Submitting Spark job")
 
         target_cols = [c.strip() for c in job.target_columns.split(",")]
+
+        # Small delay to ensure file is fully written to volume before Spark reads it
+        import time
+        time.sleep(2)
 
         result_path, row_count = run_replacement(
             upload_path=job.upload_file.path,
