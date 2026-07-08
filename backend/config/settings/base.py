@@ -112,7 +112,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = "UTC"
-
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
 # How long Celery keeps task results in Redis before expiring them.
 # 24h is enough for a user to come back and download their result.
 CELERY_RESULT_EXPIRES = 60 * 60 * 24
