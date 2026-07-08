@@ -40,7 +40,7 @@ def run_replacement(
                 .option("inferSchema", "false")
                 .option("multiLine", "true")
                 .option("escape", '"')
-                .csv(upload_path)
+                .csv(f"file:///{upload_path.lstrip('/')}")
             )
         elif ext in (".xlsx", ".xls"):
             df = _excel_to_spark(spark, upload_path)
