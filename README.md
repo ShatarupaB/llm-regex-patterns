@@ -6,13 +6,13 @@ A full-stack web application that lets users upload CSV/Excel files, describe pa
 
 ## Demo Video
 
-[▶ Click to watch the demo](https://youtu.be/odTuPUZ9tlQ)
+[![Demo Video](demo_thumbnail.png)](https://youtu.be/odTuPUZ9tlQ)
 
 ---
 
 ## Architecture
 
-[![Demo Video](demo_thumbnail.png)](architecture_diagram.png)
+![Architecture Diagram](architecture_diagram.png)
 
 ### Tech Stack
 
