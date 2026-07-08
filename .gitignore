@@ -39,3 +39,4 @@ spark-warehouse/
 ".env.example" 
 "docker/__init__.py" 
 "supervisord.conf" 
+"generated email dataset.py" 
